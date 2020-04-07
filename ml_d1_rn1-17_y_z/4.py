@@ -57,7 +57,8 @@ class MultinomialNaiveBayes:
         else:
             self.numberOfNegative += 1
         for index, number_of_occs in feature_vector:
-            self.occurrences[classPN][index] += number_of_occ
+            if index != -1:
+                self.occurrences[classPN][index] += number_of_occ
 
     def fit(self):
         # Racunamo P(Klasa) - priors
@@ -95,7 +96,8 @@ class MultinomialNaiveBayes:
         for c in range(self.nb_classes):
             prob = np.log(self.priors[c])
             for index, value in bow:
-                prob += value * np.log(self.like[c][index])
+                if index != -1:
+                    prob += value * np.log(self.like[c][index])
             probs[c] = prob
         # Trazimo klasu sa najvecom verovatnocom
         prediction = np.argmax(probs)
@@ -155,7 +157,7 @@ clean_corpus = []
 stop_punc = set(stopwords.words('english')).union(set(punctuation))
 
 cnt = 0
-max = len(data['x'])
+max = len(data['y'])
 useFile = False
 
 dictonary = dict()
@@ -252,7 +254,7 @@ for i in range(int(max*0.8)):
 
     for word in doc_set:
         number_of_occ = numocc_score(word, doc)
-        new_feature_vector.append((vocab_dic[word], number_of_occ))
+        new_feature_vector.append((vocab_dic.get(word,-1), number_of_occ))
 
     model.add_feature_vector_tmp(new_feature_vector, data['y'][doc_idx])
 
@@ -288,7 +290,7 @@ for i in range(int(max*0.8), max):
 
     for word in doc_set:
         number_of_occ = numocc_score(word, doc)
-        new_feature_vector.append((vocab_dic[word], number_of_occ))
+        new_feature_vector.append((vocab_dic.get(word,-1), number_of_occ))
 
     # new_feature_vector = [0 for i in range(feature_vector_size)]
     # for word_idx in range(feature_vector_size):
