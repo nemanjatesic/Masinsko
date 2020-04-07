@@ -16,7 +16,6 @@ from spellchecker import SpellChecker
 
 enchantDict = enchant.Dict("en_US")
 spell = SpellChecker()
-#tweet_tokenizer = TweetTokenizer(preserve_case=False, strip_handles=True, reduce_len=True)
 
 porter = PorterStemmer()
 dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -31,7 +30,6 @@ print('Cleaning the corpus...')
 clean_corpus = []
 stop_punc = set(stopwords.words('english')).union(set(punctuation))
 
-
 # corpus = ['shouldn\'t', 'cao', '#hello']
 
 count = 0
@@ -45,9 +43,8 @@ def too_many_chars(obj):
     return re.sub(r'(.)\1+', r'\1\1', obj)
 
 
-f = open('output.txt', 'a')
+#f = open('output.txt', 'a')
 
-num = 0
 cnt = 0
 
 for doc in corpus:
@@ -57,30 +54,17 @@ for doc in corpus:
     words_filtered = [remove_hashtag(w) for w in words_lower]
     words_filtered = [w for w in words_filtered if w not in stop_punc]
     words_filtered = [w for w in words_filtered if w.isalpha()]
+    words_filtered = [too_many_chars(w) for w in words_filtered]
     words_stemmed = [porter.stem(w) for w in words_filtered]
-    words_two_letter_max = [too_many_chars(w) for w in words_stemmed]
-    words_final = []
-    for w in words_two_letter_max:
-        if enchantDict.check(w):
-            words_final.append(w)
-        else:
-            start = time.time()
-            newWord = spell.correction(w)
-            end = time.time()
-            num += end - start
-            count += 1
-            if enchantDict.check(newWord):
-                words_final.append(newWord)
-
+    words_final = [w for w in words_stemmed if enchantDict.check(w)]
     clean_corpus.append(words_final)
-    f.write(str(words_final))
-    f.write('\n')
+
+    #f.write(str(words_final))
+    #f.write('\n')
 
     if cnt == 50: break
 
 
-f.close()
+#f.close()
 
 print('done')
-print(num / count)
-print(count)
