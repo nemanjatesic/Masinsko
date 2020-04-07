@@ -60,7 +60,19 @@ for doc in corpus:
     #f.write(str(words_final))
     #f.write('\n')
 
-    if cnt == 50: break
+    if cnt % 10000:
+        print(cnt)
+
+# Kreiramo vokabular
+print('Creating the vocab...')
+vocab_set = set()
+for doc in clean_corpus:
+  for word in doc:
+    vocab_set.add(word)
+vocab = list(vocab_set)
+
+#print('Vocab:', list(zip(vocab, range(len(vocab)))))
+print('Feature vector size: ', len(vocab))
 
 
 #f.close()
