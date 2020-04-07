@@ -6,18 +6,25 @@ import numpy as np
 import math
 import time
 import random
+from collections import Counter
 from nltk import FreqDist
 from nltk.tokenize import wordpunct_tokenize
 from string import punctuation
 from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
+from nltk.stem import LancasterStemmer
+from nltk.corpus import words
 
 # 29842830 71.2 - 10k - recnikON
 # 29842830 76.1 - 10k - recnikOFF
 # 29842830 76.8 - 5k - recnikOFF
 # 29842830 75.0 - 5k - onjgenFixON
 # 29842830 71.35 - 20k - onjgenFixON
-# 29842830  - 20k - onjgenFixOFF
+# 29842830 73.35 - 20k - onjgenFixOFF
+# 29842830 76.18 - 5k - izbacivanjePraznihBezRecnika
+# 29842830 75.79 - 5k - izbacivanjePraznihSaRecnikom
+# 29842830 73.02 - 20k - izbacivanjePraznihSaRecnikom
+# 29842830 74.53 - 20k - izbacivanjePraznihBezRecnikom
 
 random.seed(29842830)
 
@@ -130,26 +137,37 @@ cnt = 0
 max = 20000
 useFile = False
 
+dictonary = dict()
 f = open('output1.txt', 'w')
-
+current_index = 0
 for doc in corpus:
     cnt += 1
+    current_index += 1
     words = wordpunct_tokenize(doc)
     words_lower = [w.lower() for w in words]
     words_filtered = [remove_hashtag(w) for w in words_lower]
     words_filtered = [w for w in words_filtered if w not in stop_punc]
     words_filtered = [w for w in words_filtered if w.isalpha()]
     words_filtered = [too_many_chars(w) for w in words_filtered]
-    # words_filtered = [w for w in words_filtered if enchantDict.check(w)]
+    #words_filtered = [w for w in words_filtered if enchantDict.check(w)]
     words_filtered = [porter.stem(w) for w in words_filtered]
 
-    clean_corpus.append(words_filtered)
+    for word in words_filtered:
+        key = dictonary.get(word, 0)
+        dictonary[word] = key + 1
+
+    if len(words_filtered) > 0:
+        clean_corpus.append(words_filtered)
+    else:
+        data['y'].pop(current_index)
+        current_index -= 1
 
     if useFile: f.write(str(words_filtered))
     if useFile: f.write('\n')
     if cnt == max:
         break
 
+max = len(clean_corpus)
 f.close()
 # Kreiramo vokabular
 print('Creating the vocab...')
@@ -158,6 +176,17 @@ for doc in clean_corpus:
     for word in doc:
         vocab_set.add(word)
 vocab = list(vocab_set)
+
+if len(vocab) > 10000:
+    list_of_all_words = []
+    for word in vocab:
+        key = dictonary.get(word, 0)
+        list_of_all_words.append((word, key))
+    list_of_all_words.sort(key=lambda x: x[1], reverse=True)
+    out_list = []
+    for i in range(10000):
+        out_list.append(list_of_all_words[i][0])
+    vocab = out_list
 
 # print('Vocab:', list(zip(vocab, range(len(vocab)))))
 print('Feature vector size: ', len(vocab))
