@@ -1,0 +1,41 @@
+a. Koja je razlika izmedju k-fold, leave one out i random subsampling
+cross validation algoritama?
+
+Uvod: cross validation je statisticki 'test' koji se koristi za evaluaciju modela.
+Kako se to desava? Tako sto ukrstamo razlicite delove dataseta i delimo na
+odgovarajuce skupove za trening i testiranje, nekoliko puta razlicite podele.
+Leave one out: Izuzimamo jedan podatak iz skupa podataka i treniramo na ostatku i potom testiramo na tom izuzetom podatku
+Postupak ponavljam n puta izuzimajuci svaki put novi primerak. 
+K-fold: Imam n podataka, izmesam ih i zatim podelim na k jednakih delova.
+Nakon toga imam k iteracija gde svaki put novi deo proglasim delom za testiranje 
+a ostatak je za trening.
+U oba slucaja - Leave one out i k-fold kao krajnju gresku uzimamo prosek gresaka pri svkoj od evaluacija
+Random subsampling (Monte Carlo cross val): Random deli podatke za test i trening skup.
+Razmera podele zavisi od korisnika npr. 60%-40%, 80%-20% ...
+
+Poredjenja: Leave one out je isto sto i k-fold za k=n.
+Prednost k-fold algoritma u odnosu na random subsampling je to sto svaki podatak bude iskoriscen
+i za test i trening u nekom momentu (zbog ovoga imamo precizniju evaluaciju modela jer je pri svakoj iteraciji model bio treniran i evaluiran na drugacijem skupu podataka pa je samim tim krajnja ocena verodostojnija(/robusnija u smislu varijanse)). 
+Prednost random subsampling algoritma u samoj brzini jer za razliku od k-fold validacije - u kojoj treniramo i evaluiramo k razlicitih modela, ovde treniramo i evaluiramo samo jedan.
+
+(Note: k-fold validacije (kao sto samo ime kaze) nije metoda koju cemo koristiti za krajnju evaluaciju modela jer bi prijava ovakve greske bila biasovana jer bismo u toj 'kumulativnoj' gresci prijavili prosecnu (test) gresku k modela gde je svaki od modela trenirao na test skupu ostalih modela. Ova tehnika se obicno koristi za izbor hiperparametara modela, dok random sampling test error moze biti prijavljen kao evaluacija moci generalizacije modela.) 
+
+
+b. Objasniti razliku izmedju Gaussian, Multinomial i Bernouli Naive Bayes metoda?
+
+Uvod: Naive Bayes je familija klasifiaktora koji koriste Bayesovu teoremom tj P(C|x) = P(x|C)P(C)/P(x),
+uz pretpostavku da svi atributi/featuri podjednako uticu na ishod i medjusobno nezavisni.
+Gaussian: Obicno se koristi kada su atributi neprekidni/kontinualni, pretpostavka je da su uslovne raspodele (pri datoj klasi) normalne - Gausove.
+Multinomial: Koristimo kad imamo podatke ciji su atributi diskretne vrednosti za koje pretpostavljamo da su generisane multinomijalnom raspodelom npr.
+svaki atribut se moze modelovati kao broj pojavljivanja.
+Bernouli: Kada se atributi podataka mogu modelovati kao binarne promenjive 1 ili 0 (sa Bernulijevom raspodelom) tj. kao pojedinacni dogadjaji koji su se desili ili ne u datom uzoraku
+Napomena: ovim raspodelama modeliramo uslovne raspodele (P(x|C))
+
+Poredjenja: Koriste se svi za razlicite tipove atributa, tj za atribute sa razlicitim mogucim vrednostima
+
+c. Sta je linearna separabilnost i da li su podaci iz iris skupa lin. separabilni?
+
+To je svojstvo dva skupa tacka da se mogu razdvojiti nekom hiperravni odnosno u dve dimenzije
+svojstvo dva skupa tacka da se moze naci linija koja ih razdvaja u potpunosti ili drugacije: konveksni omotaci im se ne seku.
+Sto se tice iris dataseta, ovaj dataset nije linerno separabilan.
+Ovo se moze videti iz cinjenice da linearni klasifikator npr. logisticka regresija nije u stanju da sa preciznoscu od 100% razdvoji skup podataka Iris u procesu treniranja, tako da se sa jedne strane hiperravni nalaze svi podaci jedne klase, a sa druge podaci druge klase.
