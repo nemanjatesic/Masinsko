@@ -14,9 +14,12 @@ from nltk.stem import PorterStemmer
 
 # 29842830 71.2 - 10k - recnikON
 # 29842830 76.1 - 10k - recnikOFF
+# 29842830 76.8 - 5k - recnikOFF
+# 29842830 75.0 - 5k - onjgenFixON
+# 29842830 71.35 - 20k - onjgenFixON
+# 29842830  - 20k - onjgenFixOFF
 
 random.seed(29842830)
-
 
 class MultinomialNaiveBayes:
     def __init__(self, nb_classes, nb_words, pseudocount):
@@ -124,7 +127,7 @@ clean_corpus = []
 stop_punc = set(stopwords.words('english')).union(set(punctuation))
 
 cnt = 0
-max = 5000
+max = 20000
 useFile = False
 
 f = open('output1.txt', 'w')
@@ -137,8 +140,9 @@ for doc in corpus:
     words_filtered = [w for w in words_filtered if w not in stop_punc]
     words_filtered = [w for w in words_filtered if w.isalpha()]
     words_filtered = [too_many_chars(w) for w in words_filtered]
-    words_filtered = [porter.stem(w) for w in words_filtered]
     # words_filtered = [w for w in words_filtered if enchantDict.check(w)]
+    words_filtered = [porter.stem(w) for w in words_filtered]
+
     clean_corpus.append(words_filtered)
 
     if useFile: f.write(str(words_filtered))
