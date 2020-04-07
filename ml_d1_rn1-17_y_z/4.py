@@ -50,6 +50,15 @@ class MultinomialNaiveBayes:
             count = feature_vector[w]
             self.occurrences[classPN][w] += count
 
+    def add_feature_vector_tmp(self, feature_vector, classPN):
+        self.numberOfFeatures += 1
+        if classPN == 0:
+            self.numberOfPositive += 1
+        else:
+            self.numberOfNegative += 1
+        for index, number_of_occs in feature_vector:
+            self.occurrences[classPN][index] += number_of_occ
+
     def fit(self):
         # Racunamo P(Klasa) - priors
         # np.bincount nam za datu listu vraca broj pojavljivanja svakog celog
@@ -75,6 +84,18 @@ class MultinomialNaiveBayes:
             for w in range(self.nb_words):
                 cnt = bow[w]
                 prob += cnt * np.log(self.like[c][w])
+            probs[c] = prob
+        # Trazimo klasu sa najvecom verovatnocom
+        prediction = np.argmax(probs)
+        return prediction
+
+    def predict_tmp(self, bow):
+        # Racunamo P(Klasa|bow) za svaku klasu
+        probs = np.zeros(self.nb_classes)
+        for c in range(self.nb_classes):
+            prob = np.log(self.priors[c])
+            for index, value in bow:
+                prob += value * np.log(self.like[c][index])
             probs[c] = prob
         # Trazimo klasu sa najvecom verovatnocom
         prediction = np.argmax(probs)
@@ -134,7 +155,7 @@ clean_corpus = []
 stop_punc = set(stopwords.words('english')).union(set(punctuation))
 
 cnt = 0
-max = 20000
+max = len(data['x'])
 useFile = False
 
 dictonary = dict()
@@ -216,18 +237,35 @@ feature_vector_size = len(vocab)
 broj = int(int(max*0.8)*0.05)
 tmp = 0
 
+vocab_dic = dict()
+for i in range(len(vocab)):
+    vocab_dic[vocab[i]] = i
+
 for i in range(int(max*0.8)):
     doc_idx = random_index[i]
     doc = clean_corpus[doc_idx]
-    new_feature_vector = [0 for i in range(feature_vector_size)]
-    for word_idx in range(feature_vector_size):
-        word = vocab[word_idx]
-        cnt = numocc_score(word, doc)
-        new_feature_vector[word_idx] = cnt
+    doc_set = set()
+    for word in doc:
+        doc_set.add(word)
+
+    new_feature_vector = []
+
+    for word in doc_set:
+        number_of_occ = numocc_score(word, doc)
+        new_feature_vector.append((vocab_dic[word], number_of_occ))
+
+    model.add_feature_vector_tmp(new_feature_vector, data['y'][doc_idx])
+
+
+    # new_feature_vector = [0 for i in range(feature_vector_size)]
+    # for word_idx in range(feature_vector_size):
+    #     word = vocab[word_idx]
+    #     cnt = numocc_score(word, doc)
+    #     new_feature_vector[word_idx] = cnt
     if i % broj == 0:
         print(tmp, '%')
         tmp += 5
-    model.add_feature_vector(new_feature_vector, data['y'][doc_idx])
+    # model.add_feature_vector(new_feature_vector, data['y'][doc_idx])
 
 model.fit()
 
@@ -241,15 +279,27 @@ tmp = 0
 for i in range(int(max*0.8), max):
     doc_idx = random_index[i]
     doc = clean_corpus[doc_idx]
-    new_feature_vector = [0 for i in range(feature_vector_size)]
-    for word_idx in range(feature_vector_size):
-        word = vocab[word_idx]
-        cnt = numocc_score(word, doc)
-        new_feature_vector[word_idx] = cnt
+
+    doc_set = set()
+    for word in doc:
+        doc_set.add(word)
+
+    new_feature_vector = []
+
+    for word in doc_set:
+        number_of_occ = numocc_score(word, doc)
+        new_feature_vector.append((vocab_dic[word], number_of_occ))
+
+    # new_feature_vector = [0 for i in range(feature_vector_size)]
+    # for word_idx in range(feature_vector_size):
+    #     word = vocab[word_idx]
+    #     cnt = numocc_score(word, doc)
+    #     new_feature_vector[word_idx] = cnt
     if i % broj == 0:
         print(tmp, '%')
         tmp += 5
-    prediction = model.predict(np.asarray(new_feature_vector))
+    # prediction = model.predict(np.asarray(new_feature_vector))
+    prediction = model.predict_tmp(new_feature_vector)
     if class_names[prediction] == 'Positive' and data['y'][doc_idx] == 0:
         brojTacnih += 1
     if class_names[prediction] == 'Negative' and data['y'][doc_idx] == 1:
