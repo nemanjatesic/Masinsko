@@ -12,10 +12,8 @@ from string import punctuation
 from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
 from nltk.tokenize import TweetTokenizer
-from spellchecker import SpellChecker
 
 enchantDict = enchant.Dict("en_US")
-spell = SpellChecker()
 
 porter = PorterStemmer()
 dir_path = os.path.dirname(os.path.realpath(__file__))
