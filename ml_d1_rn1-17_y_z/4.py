@@ -12,40 +12,50 @@ from string import punctuation
 from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
 
-random.seed(a=None)
+# 29842830 71.2 - 10k - recnikON
+# 29842830 76.1 - 10k - recnikOFF
+# 29842830 76.8 - 5k - recnikOFF
+# 29842830 75.0 - 5k - onjgenFixON
+# 29842830 71.35 - 20k - onjgenFixON
+# 29842830  - 20k - onjgenFixOFF
+
+random.seed(29842830)
 
 class MultinomialNaiveBayes:
     def __init__(self, nb_classes, nb_words, pseudocount):
         self.nb_classes = nb_classes
         self.nb_words = nb_words
         self.pseudocount = pseudocount
+        self.like = np.zeros((self.nb_classes, self.nb_words))
+        self.occurrences = np.zeros((self.nb_classes, self.nb_words))
+        self.numberOfFeatures = 0
+        self.numberOfPositive = 0
+        self.numberOfNegative = 0
 
-    def fit(self, X, Y):
-        nb_examples = X.shape[0]
+    def add_feature_vector(self, feature_vector, classPN):
+        # Racunamo broj pojavljivanja svake reci u svakoj klasi
+        self.numberOfFeatures += 1
+        if classPN == 0:
+            self.numberOfPositive += 1
+        else:
+            self.numberOfNegative += 1
+        for w in range(len(feature_vector)):
+            count = feature_vector[w]
+            self.occurrences[classPN][w] += count
 
+    def fit(self):
         # Racunamo P(Klasa) - priors
         # np.bincount nam za datu listu vraca broj pojavljivanja svakog celog
         # broja u intervalu [0, maksimalni broj u listi]
-        self.priors = np.bincount(Y) / nb_examples
+        self.priors = np.asarray([self.numberOfPositive/self.numberOfFeatures, self.numberOfNegative/self.numberOfFeatures])
         print('Priors:')
         print(self.priors)
 
-        # Racunamo broj pojavljivanja svake reci u svakoj klasi
-        occs = np.zeros((self.nb_classes, self.nb_words))
-        for i in range(nb_examples):
-            c = Y[i]
-            for w in range(self.nb_words):
-                cnt = X[i][w]
-                occs[c][w] += cnt
-        print('Occurences:')
-        print(occs)
-
         # Racunamo P(Rec_i|Klasa) - likelihoods
-        self.like = np.zeros((self.nb_classes, self.nb_words))
         for c in range(self.nb_classes):
             for w in range(self.nb_words):
-                up = occs[c][w] + self.pseudocount
-                down = np.sum(occs[c]) + self.nb_words * self.pseudocount
+                up = self.occurrences[c][w] + self.pseudocount
+                down = np.sum(self.occurrences[c]) + self.nb_words * self.pseudocount
                 self.like[c][w] = up / down
         print('Likelihoods:')
         print(self.like)
@@ -116,12 +126,11 @@ print('Cleaning the corpus...')
 clean_corpus = []
 stop_punc = set(stopwords.words('english')).union(set(punctuation))
 
-# corpus = ['shouldn\'t', 'cao', '#hello']
-
-# f = open('output.txt', 'a')
-
 cnt = 0
-max = len(data['y'])
+max = 20000
+useFile = False
+
+f = open('output1.txt', 'w')
 
 for doc in corpus:
     cnt += 1
@@ -131,16 +140,17 @@ for doc in corpus:
     words_filtered = [w for w in words_filtered if w not in stop_punc]
     words_filtered = [w for w in words_filtered if w.isalpha()]
     words_filtered = [too_many_chars(w) for w in words_filtered]
-    words_stemmed = [porter.stem(w) for w in words_filtered]
-    words_final = [w for w in words_stemmed if enchantDict.check(w)]
-    clean_corpus.append(words_final)
+    # words_filtered = [w for w in words_filtered if enchantDict.check(w)]
+    words_filtered = [porter.stem(w) for w in words_filtered]
 
-    # f.write(str(words_final))
-    # f.write('\n')
+    clean_corpus.append(words_filtered)
 
+    if useFile: f.write(str(words_filtered))
+    if useFile: f.write('\n')
     if cnt == max:
         break
 
+f.close()
 # Kreiramo vokabular
 print('Creating the vocab...')
 vocab_set = set()
@@ -151,53 +161,116 @@ vocab = list(vocab_set)
 
 # print('Vocab:', list(zip(vocab, range(len(vocab)))))
 print('Feature vector size: ', len(vocab))
+model = MultinomialNaiveBayes(nb_classes=2, nb_words=len(vocab), pseudocount=1)
+
+# Bag of Words model
+# print('Creating BOW features...')
+# X = np.zeros((len(clean_corpus), len(vocab)), dtype=np.float32)
+# for doc_idx in range(len(clean_corpus)):
+#     doc = clean_corpus[doc_idx]
+#     for word_idx in range(len(vocab)):
+#         word = vocab[word_idx]
+#         cnt = numocc_score(word, doc)
+#         X[doc_idx][word_idx] = cnt
+
+
+######################################################################
+
+random_index = create_random_indexes(max)
 
 # Bag of Words model
 print('Creating BOW features...')
-X = np.zeros((len(clean_corpus), len(vocab)), dtype=np.float32)
-for doc_idx in range(len(clean_corpus)):
+
+feature_vector_size = len(vocab)
+
+# 5% done
+broj = int(int(max*0.8)*0.05)
+tmp = 0
+
+for i in range(int(max*0.8)):
+    doc_idx = random_index[i]
     doc = clean_corpus[doc_idx]
-    for word_idx in range(len(vocab)):
+    new_feature_vector = [0 for i in range(feature_vector_size)]
+    for word_idx in range(feature_vector_size):
         word = vocab[word_idx]
         cnt = numocc_score(word, doc)
-        X[doc_idx][word_idx] = cnt
+        new_feature_vector[word_idx] = cnt
+    if i % broj == 0:
+        print(tmp, '%')
+        tmp += 5
+    model.add_feature_vector(new_feature_vector, data['y'][doc_idx])
 
-# f.close()
+model.fit()
 
-# creating sets for learning and testing
-random_index = create_random_indexes(max)
-
-YLearning = []
-XLearning = []
-for i in range(int(max * 0.8)):
-    index = random_index[i]
-    YLearning.append(data['y'][index])
-    XLearning.append(X[index])
-
-YTest = []
-XTest = []
-for i in range(int(max * 0.8), max):
-    index = random_index[i]
-    YTest.append(data['y'][index])
-    XTest.append(X[index])
-
-class_names = ['Positive', 'Negative']
-YLearningNP = np.asarray(YLearning)
-XLearningNP = np.asarray(XLearning)
-
-model = MultinomialNaiveBayes(nb_classes=2, nb_words=len(vocab), pseudocount=1)
-model.fit(XLearningNP, YLearningNP)
-
+print('Checking for test set...')
 brojTacnih = 0
-for i in range(len(YTest)):
-    prediction = model.predict(np.asarray(XTest[i]))
-    if class_names[prediction] == 'Positive' and YTest[i] == 0:
+class_names = ['Positive', 'Negative']
+
+
+broj = int(max*0.2*0.05)
+tmp = 0
+for i in range(int(max*0.8), max):
+    doc_idx = random_index[i]
+    doc = clean_corpus[doc_idx]
+    new_feature_vector = [0 for i in range(feature_vector_size)]
+    for word_idx in range(feature_vector_size):
+        word = vocab[word_idx]
+        cnt = numocc_score(word, doc)
+        new_feature_vector[word_idx] = cnt
+    if i % broj == 0:
+        print(tmp, '%')
+        tmp += 5
+    prediction = model.predict(np.asarray(new_feature_vector))
+    if class_names[prediction] == 'Positive' and data['y'][doc_idx] == 0:
         brojTacnih += 1
-    if class_names[prediction] == 'Negative' and YTest[i] == 1:
+    if class_names[prediction] == 'Negative' and data['y'][doc_idx] == 1:
         brojTacnih += 1
 
 tmpBr = brojTacnih / int(max * 0.2) * 100
 
 print('Procent pogodjenih : ', tmpBr)
+
+######################################################################
+
+# f.close()
+
+
+# # creating sets for learning and testing
+# print('Creating sets for learning and testing...')
+#
+# YLearning = []
+# XLearning = []
+# for i in range(int(max * 0.8)):
+#     index = random_index[i]
+#     YLearning.append(data['y'][index])
+#     XLearning.append(X[index])
+#
+# YTest = []
+# XTest = []
+# for i in range(int(max * 0.8), max):
+#     index = random_index[i]
+#     YTest.append(data['y'][index])
+#     XTest.append(X[index])
+#
+# class_names = ['Positive', 'Negative']
+# YLearningNP = np.asarray(YLearning)
+# XLearningNP = np.asarray(XLearning)
+#
+# print('Starting to fit...')
+#
+# model.fit(XLearningNP, YLearningNP)
+#
+# print('Checking for test set...')
+# brojTacnih = 0
+# for i in range(len(YTest)):
+#     prediction = model.predict(np.asarray(XTest[i]))
+#     if class_names[prediction] == 'Positive' and YTest[i] == 0:
+#         brojTacnih += 1
+#     if class_names[prediction] == 'Negative' and YTest[i] == 1:
+#         brojTacnih += 1
+#
+# tmpBr = brojTacnih / int(max * 0.2) * 100
+#
+# print('Procent pogodjenih : ', tmpBr)
 
 print('done')
