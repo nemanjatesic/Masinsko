@@ -46,7 +46,7 @@ def polynomial_regression(nb_features, data_x, data_y, lmbd):
         _, curr_loss = sess.run([opt_op, mse], feed_dict=feed)
         epoch_loss += curr_loss
  
-    # Ispisujemo i plotujemo finalnu vrednost parametara.
+    # Plotting and calc: 
     w_val = sess.run(w)
     bias_val = sess.run(bias)
     #print('w = ', w_val, 'bias = ', bias_val)
