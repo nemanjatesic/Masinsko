@@ -121,7 +121,7 @@ clean_corpus = []
 stop_punc = set(stopwords.words('english')).union(set(punctuation))
 
 cnt = 0
-max = 100000
+max = len(data['y'])
 
 for doc in corpus:
     cnt += 1
