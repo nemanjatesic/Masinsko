@@ -71,6 +71,7 @@ for doc in clean_corpus:
     vocab_set.add(word)
 vocab = list(vocab_set)
 
+
 #print('Vocab:', list(zip(vocab, range(len(vocab)))))
 print('Feature vector size: ', len(vocab))
 
