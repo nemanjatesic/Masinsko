@@ -90,7 +90,7 @@ class MultinomialNaiveBayes:
         return prediction
 
     def predict_tmp(self, bow):
-        # Racunamo P(Klasa|bow) za svaku klasu
+        # Racunamo P(Klasa|bow) za svaku klasuu
         probs = np.zeros(self.nb_classes)
         for c in range(self.nb_classes):
             prob = np.log(self.priors[c])
