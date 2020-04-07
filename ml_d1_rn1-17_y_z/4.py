@@ -12,7 +12,10 @@ from string import punctuation
 from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
 
-random.seed(a=None)
+# 29842830 71.2 - 10k - recnikON
+# 29842830 76.1 - 10k - recnikOFF
+
+random.seed(29842830)
 
 
 class MultinomialNaiveBayes:
@@ -121,7 +124,10 @@ clean_corpus = []
 stop_punc = set(stopwords.words('english')).union(set(punctuation))
 
 cnt = 0
-max = len(data['y'])
+max = 5000
+useFile = False
+
+f = open('output1.txt', 'w')
 
 for doc in corpus:
     cnt += 1
@@ -132,12 +138,15 @@ for doc in corpus:
     words_filtered = [w for w in words_filtered if w.isalpha()]
     words_filtered = [too_many_chars(w) for w in words_filtered]
     words_filtered = [porter.stem(w) for w in words_filtered]
-    words_filtered = [w for w in words_filtered if enchantDict.check(w)]
+    # words_filtered = [w for w in words_filtered if enchantDict.check(w)]
     clean_corpus.append(words_filtered)
 
+    if useFile: f.write(str(words_filtered))
+    if useFile: f.write('\n')
     if cnt == max:
         break
 
+f.close()
 # Kreiramo vokabular
 print('Creating the vocab...')
 vocab_set = set()
@@ -170,6 +179,10 @@ print('Creating BOW features...')
 
 feature_vector_size = len(vocab)
 
+# 5% done
+broj = int(int(max*0.8)*0.05)
+tmp = 0
+
 for i in range(int(max*0.8)):
     doc_idx = random_index[i]
     doc = clean_corpus[doc_idx]
@@ -178,6 +191,9 @@ for i in range(int(max*0.8)):
         word = vocab[word_idx]
         cnt = numocc_score(word, doc)
         new_feature_vector[word_idx] = cnt
+    if i % broj == 0:
+        print(tmp, '%')
+        tmp += 5
     model.add_feature_vector(new_feature_vector, data['y'][doc_idx])
 
 model.fit()
@@ -185,6 +201,10 @@ model.fit()
 print('Checking for test set...')
 brojTacnih = 0
 class_names = ['Positive', 'Negative']
+
+
+broj = int(max*0.2*0.05)
+tmp = 0
 for i in range(int(max*0.8), max):
     doc_idx = random_index[i]
     doc = clean_corpus[doc_idx]
@@ -193,6 +213,9 @@ for i in range(int(max*0.8), max):
         word = vocab[word_idx]
         cnt = numocc_score(word, doc)
         new_feature_vector[word_idx] = cnt
+    if i % broj == 0:
+        print(tmp, '%')
+        tmp += 5
     prediction = model.predict(np.asarray(new_feature_vector))
     if class_names[prediction] == 'Positive' and data['y'][doc_idx] == 0:
         brojTacnih += 1
