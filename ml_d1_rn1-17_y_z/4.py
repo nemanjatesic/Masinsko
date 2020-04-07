@@ -149,7 +149,7 @@ for doc in corpus:
     words_filtered = [w for w in words_filtered if w not in stop_punc]
     words_filtered = [w for w in words_filtered if w.isalpha()]
     words_filtered = [too_many_chars(w) for w in words_filtered]
-    #words_filtered = [w for w in words_filtered if enchantDict.check(w)]
+    # words_filtered = [w for w in words_filtered if enchantDict.check(w)]
     words_filtered = [porter.stem(w) for w in words_filtered]
 
     for word in words_filtered:
