@@ -13,6 +13,7 @@ from string import punctuation
 from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
 from nltk.stem import LancasterStemmer
+from nltk.stem import SnowballStemmer
 from nltk.corpus import words
 
 # 29842830 71.2 - 10k - recnikON
@@ -26,7 +27,7 @@ from nltk.corpus import words
 # 29842830 73.02 - 20k - izbacivanjePraznihSaRecnikom
 # 29842830 74.53 - 20k - izbacivanjePraznihBezRecnikom
 
-random.seed(29842830)
+random.seed(73979309)
 
 class MultinomialNaiveBayes:
     def __init__(self, nb_classes, nb_words, pseudocount):
@@ -143,6 +144,8 @@ def create_random_indexes(maximum):
 enchantDict = enchant.Dict("en_US")
 
 porter = PorterStemmer()
+lancaster = LancasterStemmer()
+snowball = SnowballStemmer("english")
 dir_path = os.path.dirname(os.path.realpath(__file__))
 fileName = dir_path + os.sep + 'data' + os.sep + 'twitter.csv'
 data = dict()
