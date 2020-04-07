@@ -14,7 +14,6 @@ from nltk.stem import PorterStemmer
 
 random.seed(a=None)
 
-
 class MultinomialNaiveBayes:
     def __init__(self, nb_classes, nb_words, pseudocount):
         self.nb_classes = nb_classes
@@ -122,7 +121,7 @@ stop_punc = set(stopwords.words('english')).union(set(punctuation))
 # f = open('output.txt', 'a')
 
 cnt = 0
-max = 10000
+max = len(data['y'])
 
 for doc in corpus:
     cnt += 1
