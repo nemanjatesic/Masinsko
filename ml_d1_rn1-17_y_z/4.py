@@ -133,6 +133,45 @@ class MultinomialNaiveBayes:
         prediction = np.argmax(probs)
         return prediction
 
+    def best_tweets(self, vocabulary):
+        list_negatives = []
+        for i in range(len(self.occurrences[0])):
+            list_negatives.append((vocabulary[i], self.occurrences[0][i]))
+        list_positives = []
+        for i in range(len(self.occurrences[1])):
+            list_positives.append((vocabulary[i], self.occurrences[1][i]))
+        list_negatives.sort(key=lambda x: x[1], reverse=True)
+        list_positives.sort(key=lambda x: x[1], reverse=True)
+        list_out = []
+        tmp_neg = []
+        tmp_pos = []
+        for i in range(5):
+            # Da vrati samo string dodati [0] na kraj
+            tmp_neg.append(list_negatives[i])
+            tmp_pos.append(list_positives[i])
+        list_out.append(tmp_neg)
+        list_out.append(tmp_pos)
+        return list_out
+
+    def best_lr_tweets(self, vocabulary, amount=5):
+        list_all = []
+        for i in range(len(self.occurrences[0])):
+            if self.occurrences[0][i] >= 10 and self.occurrences[1][i] >= 10:
+                list_all.append((vocabulary[i], self.occurrences[1][i]/self.occurrences[0][i]))
+        list_all.sort(key=lambda x: x[1], reverse=True)
+        list_out = []
+        best_tmp = []
+        for i in range(amount):
+            best_tmp.append(list_all[i])
+        list_out.append(best_tmp)
+
+        list_all.reverse()
+        worst_tmp = []
+        for i in range(amount):
+            worst_tmp.append(list_all[i])
+        list_out.append(worst_tmp)
+        return list_out
+
 
 def remove_mentions(obj):
     return re.sub(r'@\w+', '', obj)
@@ -154,7 +193,9 @@ def too_many_chars(obj):
     #return re.sub(r'(\w)\1{2,}', r'\1', obj)
     return re.sub(r'(.)\1+', r'\1', obj)
 
+
 def numocc_score(word, doc):
+    # return 1 if word in doc else 0
     return doc.count(word)
 
 
@@ -288,7 +329,6 @@ vocab_dic = dict()
 for i in range(feature_vector_size):
     vocab_dic[vocab[i]] = i
 
-
 for i in range(int(max*0.8)):
     doc_idx = random_index[i]
     doc = clean_corpus[doc_idx]
@@ -309,6 +349,12 @@ model.fit()
 print('Checking for test set...')
 brojTacnih = 0
 class_names = ['Negative', 'Positive']
+
+confusion_matrix = []
+true_negatives = 0
+true_positives = 0
+false_negative = 0
+false_positives = 0
 for i in range(int(max*0.8), max):
     doc_idx = random_index[i]
     doc = clean_corpus[doc_idx]
@@ -324,11 +370,27 @@ for i in range(int(max*0.8), max):
         new_feature_vector.append((vocab_dic.get(word, -1), number_of_occ))
 
     prediction = model.predict_tmp(new_feature_vector)
-    if class_names[prediction] == 'Positive' and data['y'][doc_idx] == 1:
-        brojTacnih += 1
-    if class_names[prediction] == 'Negative' and data['y'][doc_idx] == 0:
-        brojTacnih += 1
+    if class_names[prediction] == 'Positive':
+        if data['y'][doc_idx] == 1:
+            true_positives += 1
+            brojTacnih += 1
+        else:
+            false_positives += 1
+    if class_names[prediction] == 'Negative':
+        if data['y'][doc_idx] == 0:
+            true_negatives += 1
+            brojTacnih += 1
+        else:
+            false_negative += 1
 
-tmpBr = brojTacnih / int(max * 0.2) * 100
-print('Procent pogodjenih : ', tmpBr)
-print('done')
+confusion_matrix.append([true_negatives, false_positives])
+confusion_matrix.append([false_negative, true_positives])
+
+print('Confusion matrix\n', confusion_matrix)
+print('Proecenat novi', (true_positives+true_negatives) / (true_positives+true_negatives+false_negative+false_positives) * 100)
+
+# negative = [('not', 3463.0), ('no', 2935.0), ('go', 2767.0), ('dont', 2253.0), ('get', 2224.0)]
+# positive = [('thank', 4022.0), ('god', 3635.0), ('love', 3295.0), ('like', 2777.0), ('u', 2324.0)]
+print(model.best_tweets(vocab))
+print(model.best_lr_tweets(vocab, amount=20))
+print('Done.')
