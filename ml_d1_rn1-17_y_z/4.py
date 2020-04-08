@@ -25,9 +25,15 @@ from nltk.stem import SnowballStemmer
 # 29842830 75.79 - 5k - izbacivanjePraznihSaRecnikom
 # 29842830 73.02 - 20k - izbacivanjePraznihSaRecnikom
 # 29842830 74.53 - 20k - izbacivanjePraznihBezRecnikom
-# 984563275
-#
-random.seed(42069101)
+# 984563275 74.8058 - 100k
+# 42069101 74.55 - 100k
+# 11769077 74.905 -100k
+
+# 9621128  75.1273387462807 - 100k !!!
+# 53410 75.33410661152857 - 100k !!!
+# 3971057 75.47027081547229 - 100k !!!
+# 7465633 75.69721115537848 - 100k !!!
+random.seed(7465633)
 
 class MultinomialNaiveBayes:
     def __init__(self, nb_classes, nb_words, pseudocount):
@@ -123,8 +129,20 @@ class MultinomialNaiveBayes:
         return prediction
 
 
+def remove_mentions(obj):
+    return re.sub(r'@\w+', '', obj)
+
+
+def remove_links(obj):
+    return re.sub(r'http.?://[^\s]+[\s]?', '', obj)
+
+
 def remove_hashtag(obj):
     return re.sub(r'#([^\s]+)', r'\1', obj)
+
+
+def remove_symbols(obj):
+    return re.sub(r'[^a-zA-Z\s]', '', obj)
 
 
 def too_many_chars(obj):
@@ -164,18 +182,41 @@ corpus = data['x']
 print('Cleaning the corpus...')
 clean_corpus = []
 stop_punc = set(stopwords.words('english')).union(set(punctuation))
+stop_punc.add('lt')
+stop_punc.add('gt')
+stop_punc.add('quot')
+stop_punc.add('amp')
+stop_punc.remove('no')
+stop_punc.remove('not')
 
 cnt = 0
 useFile = False
 
 dictonary = dict()
-f = open('output1.txt', 'w')
+f = open('output2.txt', 'w')
 current_index = -1
+
+
 for doc in corpus:
     cnt += 1
     current_index += 1
+    doc = remove_mentions(doc)
+    doc = remove_links(doc)
+    doc = remove_hashtag(doc)
+    doc = re.sub(r'\basap\b', 'as soon as possible', doc)
+    #doc = re.sub(r'\bidk\b', 'i don\'t know', doc)
+    doc = re.sub(r'\bppl\b', 'people', doc)
+    doc = re.sub(r'\bomg\b', 'oh my god', doc)
+    doc = re.sub(r'\bwtf\b', 'what the fuck', doc)
+    doc = re.sub(r'\blmao\b', 'laughing my ass off', doc)
+    doc = re.sub(r'\blol\b', 'laugh out loud', doc)
+    doc = remove_symbols(doc)
+    # if cnt == 46 :
+    #    print(doc)
     words = wordpunct_tokenize(doc)
     words_lower = [w.lower() for w in words]
+    # if cnt == 46 :
+    #    print(words_lower)
     words_filtered = [remove_hashtag(w) for w in words_lower]
     words_filtered = [w for w in words_filtered if w not in stop_punc]
     words_filtered = [w for w in words_filtered if w.isalpha()]
@@ -211,14 +252,14 @@ vocab = list(vocab_set)
 vocab.sort()
 
 
-if len(vocab) > 15000:
+if len(vocab) > 10000:
     list_of_all_words = []
     for word in vocab:
         key = dictonary.get(word, 0)
         list_of_all_words.append((word, key))
     list_of_all_words.sort(key=lambda x: x[1], reverse=True)
     out_list = []
-    for i in range(15000):
+    for i in range(10000):
         out_list.append(list_of_all_words[i][0])
     vocab = out_list
 
