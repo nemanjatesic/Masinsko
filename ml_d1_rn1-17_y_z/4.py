@@ -32,7 +32,12 @@ from nltk.stem import SnowballStemmer
 # 9621128  75.1273387462807 - 100k !!!
 # 53410 75.33410661152857 - 100k !!!
 # 3971057 75.47027081547229 - 100k !!!
+# 187372311 75.50557264612436
+# 1234567 75.55600383277017
 # 7465633 75.69721115537848 - 100k !!!
+# 7465633 75.80311664733472 - 100k !!! tm-1
+# 7465633 75.86867718997428 - trenutno resenje
+#35630563,24887067,98411893,1345785,6155814,22612812,21228945,7465634 - ovi imaju izmedju 75 i 75.5
 random.seed(7465633)
 
 class MultinomialNaiveBayes:
@@ -138,7 +143,7 @@ def remove_links(obj):
 
 
 def remove_hashtag(obj):
-    return re.sub(r'#([^\s]+)', r'\1', obj)
+     return re.sub(r'#([^\s]+)', r'\1', obj)
 
 
 def remove_symbols(obj):
@@ -146,8 +151,8 @@ def remove_symbols(obj):
 
 
 def too_many_chars(obj):
-    return re.sub(r'(.)\1+', r'\1\1', obj)
-
+    #return re.sub(r'(\w)\1{2,}', r'\1', obj)
+    return re.sub(r'(.)\1+', r'\1', obj)
 
 def numocc_score(word, doc):
     return doc.count(word)
@@ -186,8 +191,12 @@ stop_punc.add('lt')
 stop_punc.add('gt')
 stop_punc.add('quot')
 stop_punc.add('amp')
+# stop_punc.add('im')
 stop_punc.remove('no')
 stop_punc.remove('not')
+
+#stop_punc = [remove_symbols(w) for w in stop_punc]
+print(stop_punc)
 
 cnt = 0
 useFile = False
@@ -196,11 +205,11 @@ dictonary = dict()
 f = open('output2.txt', 'w')
 current_index = -1
 
-
 for doc in corpus:
     cnt += 1
     current_index += 1
     doc = remove_mentions(doc)
+    #doc = doc.replace('@', '')
     doc = remove_links(doc)
     doc = remove_hashtag(doc)
     doc = re.sub(r'\basap\b', 'as soon as possible', doc)
@@ -252,17 +261,18 @@ vocab = list(vocab_set)
 vocab.sort()
 
 
-if len(vocab) > 10000:
+if len(vocab) > 10001:
     list_of_all_words = []
     for word in vocab:
         key = dictonary.get(word, 0)
         list_of_all_words.append((word, key))
     list_of_all_words.sort(key=lambda x: x[1], reverse=True)
     out_list = []
-    for i in range(10000):
+    for i in range(1,10001):
         out_list.append(list_of_all_words[i][0])
     vocab = out_list
 
+print(vocab[0])
 # print('Vocab:', list(zip(vocab, range(len(vocab)))))
 print('Feature vector size: ', len(vocab))
 model = MultinomialNaiveBayes(nb_classes=2, nb_words=len(vocab), pseudocount=1)
