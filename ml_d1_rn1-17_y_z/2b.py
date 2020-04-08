@@ -13,25 +13,27 @@ def create_feature_matrix(x, nb_features):
 
 # Regression function:
 def polynomial_regression(nb_features, data_x, data_y, lmbd):
+  tf.reset_default_graph()
   data_x = create_feature_matrix(data_x, nb_features)
   
   # Model init:
-  X = tf.placeholder(shape=(None, nb_features), dtype=tf.float32)
-  Y = tf.placeholder(shape=(None), dtype=tf.float32)
-  w = tf.Variable(tf.zeros(nb_features))
-  bias = tf.Variable(0.0)
+  X = tf.placeholder(shape=(None, nb_features), dtype=tf.float32, name='X_data')
+  Y = tf.placeholder(shape=(None), dtype=tf.float32, name='Y_data')
+  w = tf.Variable(tf.zeros(nb_features), name='w')
+  bias = tf.Variable(0.0, name='bias')
 
-  w_col = tf.reshape(w, (nb_features, 1))
-  hyp = tf.add(tf.matmul(X, w_col), bias)
+  w_col = tf.reshape(w, (nb_features, 1), name='Reshape-w_col')
+  hyp = tf.add(tf.matmul(X, w_col), bias, name='Add-Hyp')
 
-  Y_col = tf.reshape(Y, (-1, 1))
+  Y_col = tf.reshape(Y, (-1, 1), name='Reshape-Y_col')
 
   # Regularization to avoid overfitting:
   l2_reg = lmbd * tf.reduce_mean(tf.square(w))
   
   # Optimization:
-  mse = tf.reduce_mean(tf.square(hyp - Y_col)) + l2_reg # loss
+  mse = tf.add(tf.reduce_mean(tf.square(hyp - Y_col)), l2_reg, name='Add-mse') # loss
   opt_op = tf.train.AdamOptimizer().minimize(mse)
+
 
   # Training:
   with tf.Session() as sess:
@@ -49,7 +51,7 @@ def polynomial_regression(nb_features, data_x, data_y, lmbd):
     # Plotting and calc: 
     w_val = sess.run(w)
     bias_val = sess.run(bias)
-    #print('w = ', w_val, 'bias = ', bias_val)
+    print('w = ', w_val, 'bias = ', bias_val)
     xs = create_feature_matrix(np.linspace(-4, 4, 100), nb_features)
     hyp_val = sess.run(hyp, feed_dict={X: xs})
     plt.plot(xs[:, 0].tolist(), hyp_val.tolist(), color='g')
@@ -97,6 +99,11 @@ plt.ylabel('loss')
 plt.xlabel('lambda value')
 
 plt.show()
+
+# 2c generisanje:
+# writer = tf.summary.FileWriter('.')
+# writer.add_graph(tf.get_default_graph())
+# writer.flush()
 
 
 # Diskusija:
