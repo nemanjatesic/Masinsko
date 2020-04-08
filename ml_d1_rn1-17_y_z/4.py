@@ -40,9 +40,10 @@ from nltk.stem import SnowballStemmer
 # 7465633 76.59350042694258
 # 7465633 76.64875182078457
 # 7465633 76.94241890872517 - trenutno
+# 7465633 77.17992557578197 - trenurno
 #35630563,24887067,98411893,1345785,6155814,22612812,21228945,7465634 - ovi imaju izmedju 75 i 75.5
-seed_rand = time.time_ns()//100000000000
-print(seed_rand)
+seed_rand = time.time_ns()
+# print(seed_rand)
 random.seed(7465633)
 
 class MultinomialNaiveBayes:
@@ -233,7 +234,8 @@ corpus = data['x']
 print('Cleaning the corpus...')
 clean_corpus = []
 #['to', 'it', 'that', 'is', 'my', 'in', 'have', 'me', 'im', 'so', 'be', 'out', 'wa']
-forbidden = ['and','to', 'have', 'get', 'now', 'thi', 'oh', 'got', 'am', 'he', 'back', 'ned', 'so', 'at', 'today', 'it', 'that', 'is', 'my', 'in', 'have', 'me', 'im', 'so', 'be', 'out', 'wa', '']
+
+forbidden = ['and', 'to', 'have', 'get', 'now', 'thi', 'oh', 'got', 'am', 'he', 'back', 'ned', 'so', 'at', 'it', 'my','that', 'is', 'in', 'have', 'me', 'im', 'so', 'be', 'out', 'wa', '']
 stop_punc = set(forbidden) # set(forbidden) #set(stopwords.words('english')).union(set(punctuation))
 stop_punc.add('lt')
 stop_punc.add('gt')
@@ -247,10 +249,10 @@ stop_punc.add('amp')
 print(stop_punc)
 
 cnt = 0
-useFile = True
+useFile = False
 
 dictonary = dict()
-f = open('output2.txt', 'w')
+f = open('output1.txt', 'w')
 current_index = -1
 
 for doc in corpus:
