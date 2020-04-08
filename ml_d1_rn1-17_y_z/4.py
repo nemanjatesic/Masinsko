@@ -36,8 +36,13 @@ from nltk.stem import SnowballStemmer
 # 1234567 75.55600383277017
 # 7465633 75.69721115537848 - 100k !!!
 # 7465633 75.80311664733472 - 100k !!! tm-1
-# 7465633 75.86867718997428 - trenutno resenje
+# 7465633 75.86867718997428
+# 7465633 76.59350042694258
+# 7465633 76.64875182078457
+# 7465633 76.94241890872517 - trenutno
 #35630563,24887067,98411893,1345785,6155814,22612812,21228945,7465634 - ovi imaju izmedju 75 i 75.5
+seed_rand = time.time_ns()//100000000000
+print(seed_rand)
 random.seed(7465633)
 
 class MultinomialNaiveBayes:
@@ -133,7 +138,7 @@ class MultinomialNaiveBayes:
         prediction = np.argmax(probs)
         return prediction
 
-    def best_tweets(self, vocabulary):
+    def best_tweets(self, vocabulary, amount=5):
         list_negatives = []
         for i in range(len(self.occurrences[0])):
             list_negatives.append((vocabulary[i], self.occurrences[0][i]))
@@ -145,7 +150,7 @@ class MultinomialNaiveBayes:
         list_out = []
         tmp_neg = []
         tmp_pos = []
-        for i in range(5):
+        for i in range(amount):
             # Da vrati samo string dodati [0] na kraj
             tmp_neg.append(list_negatives[i])
             tmp_pos.append(list_positives[i])
@@ -195,8 +200,8 @@ def too_many_chars(obj):
 
 
 def numocc_score(word, doc):
-    # return 1 if word in doc else 0
-    return doc.count(word)
+    return 1 if word in doc else 0
+    #return doc.count(word)
 
 
 def create_random_indexes(maximum):
@@ -227,20 +232,22 @@ corpus = data['x']
 
 print('Cleaning the corpus...')
 clean_corpus = []
-stop_punc = set(stopwords.words('english')).union(set(punctuation))
+#['to', 'it', 'that', 'is', 'my', 'in', 'have', 'me', 'im', 'so', 'be', 'out', 'wa']
+forbidden = ['and','to', 'have', 'get', 'now', 'thi', 'oh', 'got', 'am', 'he', 'back', 'ned', 'so', 'at', 'today', 'it', 'that', 'is', 'my', 'in', 'have', 'me', 'im', 'so', 'be', 'out', 'wa', '']
+stop_punc = set(forbidden) # set(forbidden) #set(stopwords.words('english')).union(set(punctuation))
 stop_punc.add('lt')
 stop_punc.add('gt')
 stop_punc.add('quot')
 stop_punc.add('amp')
 # stop_punc.add('im')
-stop_punc.remove('no')
-stop_punc.remove('not')
+# stop_punc.remove('no')
+#stop_punc.remove('not')
 
 #stop_punc = [remove_symbols(w) for w in stop_punc]
 print(stop_punc)
 
 cnt = 0
-useFile = False
+useFile = True
 
 dictonary = dict()
 f = open('output2.txt', 'w')
@@ -250,30 +257,26 @@ for doc in corpus:
     cnt += 1
     current_index += 1
     doc = remove_mentions(doc)
-    #doc = doc.replace('@', '')
     doc = remove_links(doc)
     doc = remove_hashtag(doc)
-    doc = re.sub(r'\basap\b', 'as soon as possible', doc)
-    #doc = re.sub(r'\bidk\b', 'i don\'t know', doc)
-    doc = re.sub(r'\bppl\b', 'people', doc)
-    doc = re.sub(r'\bomg\b', 'oh my god', doc)
-    doc = re.sub(r'\bwtf\b', 'what the fuck', doc)
-    doc = re.sub(r'\blmao\b', 'laughing my ass off', doc)
-    doc = re.sub(r'\blol\b', 'laugh out loud', doc)
+    # doc = re.sub(r'\basap\b', 'as soon as possible', doc)
+    # doc = re.sub(r'\bidk\b', 'i don\'t know', doc)
+    # doc = re.sub(r'\bppl\b', 'people', doc)
+    # doc = re.sub(r'\bomg\b', 'oh my god', doc)
+    # doc = re.sub(r'\bwtf\b', 'what the fuck', doc)
+    # doc = re.sub(r'\blmao\b', 'laughing my ass off', doc)
+    # doc = re.sub(r'\blol\b', 'laugh out loud', doc)
+    # doc = re.sub(r'\blol\b', 'laugh out loud', doc)
     doc = remove_symbols(doc)
-    # if cnt == 46 :
-    #    print(doc)
     words = wordpunct_tokenize(doc)
     words_lower = [w.lower() for w in words]
-    # if cnt == 46 :
-    #    print(words_lower)
     words_filtered = [remove_hashtag(w) for w in words_lower]
     words_filtered = [w for w in words_filtered if w not in stop_punc]
     words_filtered = [w for w in words_filtered if w.isalpha()]
     words_filtered = [too_many_chars(w) for w in words_filtered]
     # words_filtered = [w for w in words_filtered if enchantDict.check(w)]
     words_filtered = [porter.stem(w) for w in words_filtered]
-
+    words_filtered = [w for w in words_filtered if w not in stop_punc]
     for word in words_filtered:
         key = dictonary.get(word, 0)
         dictonary[word] = key + 1
@@ -302,18 +305,19 @@ vocab = list(vocab_set)
 vocab.sort()
 
 
-if len(vocab) > 10001:
+if len(vocab) > 10000:
     list_of_all_words = []
     for word in vocab:
         key = dictonary.get(word, 0)
         list_of_all_words.append((word, key))
     list_of_all_words.sort(key=lambda x: x[1], reverse=True)
     out_list = []
-    for i in range(1,10001):
-        out_list.append(list_of_all_words[i][0])
+    print(list_of_all_words[9999][1])
+    for i in range(10000):
+        if list_of_all_words[i][1] >= 10:
+            out_list.append(list_of_all_words[i][0])
     vocab = out_list
 
-print(vocab[0])
 # print('Vocab:', list(zip(vocab, range(len(vocab)))))
 print('Feature vector size: ', len(vocab))
 model = MultinomialNaiveBayes(nb_classes=2, nb_words=len(vocab), pseudocount=1)
@@ -391,6 +395,16 @@ print('Proecenat novi', (true_positives+true_negatives) / (true_positives+true_n
 
 # negative = [('not', 3463.0), ('no', 2935.0), ('go', 2767.0), ('dont', 2253.0), ('get', 2224.0)]
 # positive = [('thank', 4022.0), ('god', 3635.0), ('love', 3295.0), ('like', 2777.0), ('u', 2324.0)]
-print(model.best_tweets(vocab))
-print(model.best_lr_tweets(vocab, amount=20))
+print(model.best_tweets(vocab, amount=5))
+# za generisanje forbidden-a
+pos = model.best_tweets(vocab,amount=10)[1]
+neg = model.best_tweets(vocab,amount=10)[0]
+out = []
+for str1, br1 in pos:
+    for str2, br2 in neg:
+        if str1 == str2 and abs(br1-br2)/(br1+br2)<=0.15:
+            out.append(str1)
+            break
+print(model.best_lr_tweets(vocab, amount=5))
 print('Done.')
+print(out)
