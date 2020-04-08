@@ -14,7 +14,6 @@ from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
 from nltk.stem import LancasterStemmer
 from nltk.stem import SnowballStemmer
-from nltk.corpus import words
 
 # 29842830 71.2 - 10k - recnikON
 # 29842830 76.1 - 10k - recnikOFF
@@ -26,8 +25,9 @@ from nltk.corpus import words
 # 29842830 75.79 - 5k - izbacivanjePraznihSaRecnikom
 # 29842830 73.02 - 20k - izbacivanjePraznihSaRecnikom
 # 29842830 74.53 - 20k - izbacivanjePraznihBezRecnikom
-
-random.seed(73979309)
+# 984563275
+#
+random.seed(42069101)
 
 class MultinomialNaiveBayes:
     def __init__(self, nb_classes, nb_words, pseudocount):
@@ -57,14 +57,16 @@ class MultinomialNaiveBayes:
             self.numberOfPositive += 1
         else:
             self.numberOfNegative += 1
-        for index, number_of_occs in feature_vector:
+        for index, value in feature_vector:
             if index != -1:
-                self.occurrences[classPN][index] += number_of_occ
+                self.occurrences[classPN][index] += value
 
     def fit(self):
         # Racunamo P(Klasa) - priors
         # np.bincount nam za datu listu vraca broj pojavljivanja svakog celog
         # broja u intervalu [0, maksimalni broj u listi]
+        print(self.occurrences[0])
+        print(self.occurrences[1])
         self.priors = np.asarray([self.numberOfPositive/self.numberOfFeatures, self.numberOfNegative/self.numberOfFeatures])
         print('Priors:')
         print(self.priors)
@@ -142,6 +144,10 @@ def create_random_indexes(maximum):
 
 
 enchantDict = enchant.Dict("en_US")
+max = 100000
+num_of_rows = max
+if num_of_rows > 90000:
+    num_of_rows = None
 
 porter = PorterStemmer()
 lancaster = LancasterStemmer()
@@ -150,8 +156,8 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 fileName = dir_path + os.sep + 'data' + os.sep + 'twitter.csv'
 data = dict()
 print('Loading file...')
-data['y'] = pd.read_csv(fileName, sep=',', usecols=[1]).T.values.tolist()[0]
-data['x'] = pd.read_csv(fileName, usecols=[2], encoding="ISO-8859-1").T.values.tolist()[0]
+data['y'] = pd.read_csv(fileName, sep=',', usecols=[1], nrows=num_of_rows).T.values.tolist()[0]
+data['x'] = pd.read_csv(fileName, usecols=[2], nrows=num_of_rows, encoding="ISO-8859-1").T.values.tolist()[0]
 
 corpus = data['x']
 
@@ -160,12 +166,11 @@ clean_corpus = []
 stop_punc = set(stopwords.words('english')).union(set(punctuation))
 
 cnt = 0
-max = len(data['y'])
 useFile = False
 
 dictonary = dict()
 f = open('output1.txt', 'w')
-current_index = 0
+current_index = -1
 for doc in corpus:
     cnt += 1
     current_index += 1
@@ -202,15 +207,18 @@ for doc in clean_corpus:
     for word in doc:
         vocab_set.add(word)
 vocab = list(vocab_set)
+# MORA DA STOJI !!!
+vocab.sort()
 
-if len(vocab) > 10000:
+
+if len(vocab) > 15000:
     list_of_all_words = []
     for word in vocab:
         key = dictonary.get(word, 0)
         list_of_all_words.append((word, key))
     list_of_all_words.sort(key=lambda x: x[1], reverse=True)
     out_list = []
-    for i in range(10000):
+    for i in range(15000):
         out_list.append(list_of_all_words[i][0])
     vocab = out_list
 
@@ -238,13 +246,10 @@ print('Creating BOW features...')
 
 feature_vector_size = len(vocab)
 
-# 5% done
-broj = int(int(max*0.8)*0.05)
-tmp = 0
-
 vocab_dic = dict()
-for i in range(len(vocab)):
+for i in range(feature_vector_size):
     vocab_dic[vocab[i]] = i
+
 
 for i in range(int(max*0.8)):
     doc_idx = random_index[i]
@@ -257,7 +262,7 @@ for i in range(int(max*0.8)):
 
     for word in doc_set:
         number_of_occ = numocc_score(word, doc)
-        new_feature_vector.append((vocab_dic.get(word,-1), number_of_occ))
+        new_feature_vector.append((vocab_dic.get(word, -1), number_of_occ))
 
     model.add_feature_vector_tmp(new_feature_vector, data['y'][doc_idx])
 
@@ -267,9 +272,9 @@ for i in range(int(max*0.8)):
     #     word = vocab[word_idx]
     #     cnt = numocc_score(word, doc)
     #     new_feature_vector[word_idx] = cnt
-    if i % broj == 0:
-        print(tmp, '%')
-        tmp += 5
+    # if i % broj == 0:
+    #     print(tmp, '%')
+    #     tmp += 5
     # model.add_feature_vector(new_feature_vector, data['y'][doc_idx])
 
 model.fit()
@@ -277,10 +282,6 @@ model.fit()
 print('Checking for test set...')
 brojTacnih = 0
 class_names = ['Positive', 'Negative']
-
-
-broj = int(max*0.2*0.05)
-tmp = 0
 for i in range(int(max*0.8), max):
     doc_idx = random_index[i]
     doc = clean_corpus[doc_idx]
@@ -293,16 +294,16 @@ for i in range(int(max*0.8), max):
 
     for word in doc_set:
         number_of_occ = numocc_score(word, doc)
-        new_feature_vector.append((vocab_dic.get(word,-1), number_of_occ))
+        new_feature_vector.append((vocab_dic.get(word, -1), number_of_occ))
 
     # new_feature_vector = [0 for i in range(feature_vector_size)]
     # for word_idx in range(feature_vector_size):
     #     word = vocab[word_idx]
     #     cnt = numocc_score(word, doc)
     #     new_feature_vector[word_idx] = cnt
-    if i % broj == 0:
-        print(tmp, '%')
-        tmp += 5
+    # if i % broj == 0:
+    #     print(tmp, '%')
+    #     tmp += 5
     # prediction = model.predict(np.asarray(new_feature_vector))
     prediction = model.predict_tmp(new_feature_vector)
     if class_names[prediction] == 'Positive' and data['y'][doc_idx] == 0:
