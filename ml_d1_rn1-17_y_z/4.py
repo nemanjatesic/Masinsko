@@ -75,7 +75,7 @@ class MultinomialNaiveBayes:
     def fit(self):
         # Racunamo P(Klasa) - priors
         # np.bincount nam za datu listu vraca broj pojavljivanja svakog celog
-        # broja u intervalu [0, maksimalni broj u listi]
+        # broja u intervalu [0, maksimalni broj u listi]-
         print(self.occurrences[0])
         print(self.occurrences[1])
         self.priors = np.asarray([self.numberOfNegative/self.numberOfFeatures, self.numberOfPositive/self.numberOfFeatures])
