@@ -1,50 +1,12 @@
 import os
 import pandas as pd
 import re
-import enchant
 import numpy as np
-import math
-import time
 import random
-from collections import Counter
-from nltk import FreqDist
 from nltk.tokenize import wordpunct_tokenize
-from string import punctuation
-from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
-from nltk.stem import LancasterStemmer
-from nltk.stem import SnowballStemmer
+import sys
 
-# 29842830 71.2 - 10k - recnikON
-# 29842830 76.1 - 10k - recnikOFF
-# 29842830 76.8 - 5k - recnikOFF
-# 29842830 75.0 - 5k - onjgenFixON
-# 29842830 71.35 - 20k - onjgenFixON
-# 29842830 73.35 - 20k - onjgenFixOFF
-# 29842830 76.18 - 5k - izbacivanjePraznihBezRecnika
-# 29842830 75.79 - 5k - izbacivanjePraznihSaRecnikom
-# 29842830 73.02 - 20k - izbacivanjePraznihSaRecnikom
-# 29842830 74.53 - 20k - izbacivanjePraznihBezRecnikom
-# 984563275 74.8058 - 100k
-# 42069101 74.55 - 100k
-# 11769077 74.905 -100k
-
-# 9621128  75.1273387462807 - 100k !!!
-# 53410 75.33410661152857 - 100k !!!
-# 3971057 75.47027081547229 - 100k !!!
-# 187372311 75.50557264612436
-# 1234567 75.55600383277017
-# 7465633 75.69721115537848 - 100k !!!
-# 7465633 75.80311664733472 - 100k !!! tm-1
-# 7465633 75.86867718997428
-# 7465633 76.59350042694258
-# 7465633 76.64875182078457
-# 7465633 76.94241890872517 - trenutno
-# 7465633 77.17992557578197 - trenurno
-#35630563,24887067,98411893,1345785,6155814,22612812,21228945,7465634 - ovi imaju izmedju 75 i 75.5
-seed_rand = time.time_ns()
-# print(seed_rand)
-random.seed(7465633)
 
 class MultinomialNaiveBayes:
     def __init__(self, nb_classes, nb_words, pseudocount):
@@ -56,17 +18,6 @@ class MultinomialNaiveBayes:
         self.numberOfFeatures = 0
         self.numberOfPositive = 0
         self.numberOfNegative = 0
-
-    def add_feature_vector(self, feature_vector, classPN):
-        # Racunamo broj pojavljivanja svake reci u svakoj klasi
-        self.numberOfFeatures += 1
-        if classPN == 1:
-            self.numberOfPositive += 1
-        else:
-            self.numberOfNegative += 1
-        for w in range(len(feature_vector)):
-            count = feature_vector[w]
-            self.occurrences[classPN][w] += count
 
     def add_feature_vector_tmp(self, feature_vector, classPN):
         self.numberOfFeatures += 1
@@ -82,8 +33,6 @@ class MultinomialNaiveBayes:
         # Racunamo P(Klasa) - priors
         # np.bincount nam za datu listu vraca broj pojavljivanja svakog celog
         # broja u intervalu [0, maksimalni broj u listi]-
-        print(self.occurrences[0])
-        print(self.occurrences[1])
         self.priors = np.asarray([self.numberOfNegative/self.numberOfFeatures, self.numberOfPositive/self.numberOfFeatures])
         print('Priors:')
         print(self.priors)
@@ -94,8 +43,7 @@ class MultinomialNaiveBayes:
                 up = self.occurrences[c][w] + self.pseudocount
                 down = np.sum(self.occurrences[c]) + self.nb_words * self.pseudocount
                 self.like[c][w] = up / down
-        print('Likelihoods:')
-        print(self.like)
+        print('Finished fitting')
 
     def predict(self, bow):
         # Racunamo P(Klasa|bow) za svaku klasu
@@ -116,6 +64,8 @@ class MultinomialNaiveBayes:
         for c in range(self.nb_classes):
             prob = np.log(self.priors[c])
             for index, value in bow:
+                # Moze da se desi da se neka rec pojavila manje od 10 puta i da smo je
+                # izbacili za takve reci saljemo -1 i ne ubacujemo ih
                 if index != -1:
                     prob += value * np.log(self.like[c][index])
             probs[c] = prob
@@ -123,23 +73,9 @@ class MultinomialNaiveBayes:
         prediction = np.argmax(probs)
         return prediction
 
-    def predict_multiply(self, bow):
-        # Racunamo P(Klasa|bow) za svaku klasu
-        # Mnozimo i stepenujemo kako bismo uporedili rezultate sa slajdovima
-        probs = np.zeros(self.nb_classes)
-        for c in range(self.nb_classes):
-            prob = self.priors[c]
-            for w in range(self.nb_words):
-                cnt = bow[w]
-                prob *= self.like[c][w] ** cnt
-            probs[c] = prob
-        # Trazimo klasu sa najvecom verovatnocom
-        print('\"Probabilities\" for a test BoW (without log):')
-        print(probs)
-        prediction = np.argmax(probs)
-        return prediction
-
     def best_tweets(self, vocabulary, amount=5):
+        # Napravi dve liste pozitivnih i negativnih reci i njihovih ponavljanja u occurrences matrici
+        # sortiramo po broju ponavljanja i uzmemo 5 najboljih
         list_negatives = []
         for i in range(len(self.occurrences[0])):
             list_negatives.append((vocabulary[i], self.occurrences[0][i]))
@@ -160,6 +96,9 @@ class MultinomialNaiveBayes:
         return list_out
 
     def best_lr_tweets(self, vocabulary, amount=5):
+        # Slicno kao best_tweets samo sto umesto da vidimo koliko puta se sta desilo i stavimo to
+        # kao drugi element samo stavimo LR(rec) = countPos(rec)/countNeg(rec) i sortiramo po tome
+        # i uzimamo 5 najboljih i 5 najgorih
         list_all = []
         for i in range(len(self.occurrences[0])):
             if self.occurrences[0][i] >= 10 and self.occurrences[1][i] >= 10:
@@ -179,6 +118,14 @@ class MultinomialNaiveBayes:
         return list_out
 
 
+def printProgressBar(i,max,postText):
+    n_bar = 10
+    j = i/max
+    sys.stdout.write('\r')
+    sys.stdout.write(f"[{'=' * int(n_bar * j):{n_bar}s}] {int(100 * j)}%  {postText}")
+    sys.stdout.flush()
+
+
 def remove_mentions(obj):
     return re.sub(r'@\w+', '', obj)
 
@@ -188,7 +135,7 @@ def remove_links(obj):
 
 
 def remove_hashtag(obj):
-     return re.sub(r'#([^\s]+)', r'\1', obj)
+    return re.sub(r'#([^\s]+)', r'\1', obj)
 
 
 def remove_symbols(obj):
@@ -196,13 +143,13 @@ def remove_symbols(obj):
 
 
 def too_many_chars(obj):
-    #return re.sub(r'(\w)\1{2,}', r'\1', obj)
+    # return re.sub(r'(\w)\1{2,}', r'\1', obj)
     return re.sub(r'(.)\1+', r'\1', obj)
 
 
 def numocc_score(word, doc):
     return 1 if word in doc else 0
-    #return doc.count(word)
+    # return doc.count(word)
 
 
 def create_random_indexes(maximum):
@@ -213,155 +160,163 @@ def create_random_indexes(maximum):
     return random_index
 
 
-enchantDict = enchant.Dict("en_US")
+def load_data(num_of_rows):
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    fileName = dir_path + os.sep + 'data' + os.sep + 'twitter.csv'
+    data = dict()
+    print('Loading file...')
+    data['y'] = pd.read_csv(fileName, sep=',', usecols=[1], nrows=num_of_rows).T.values.tolist()[0]
+    data['x'] = pd.read_csv(fileName, usecols=[2], nrows=num_of_rows, encoding="ISO-8859-1").T.values.tolist()[0]
+    return data
+
+
+random.seed(7465633)
+# Broj twitova koji zelimo da ucitamo
 max = 100000
+# Broj redova koji zelimo da ucitamo iz fajla
 num_of_rows = max
 if num_of_rows > 90000:
+    # None ucitava sve automatski
     num_of_rows = None
 
-porter = PorterStemmer()
-lancaster = LancasterStemmer()
-snowball = SnowballStemmer("english")
-dir_path = os.path.dirname(os.path.realpath(__file__))
-fileName = dir_path + os.sep + 'data' + os.sep + 'twitter.csv'
-data = dict()
-print('Loading file...')
-data['y'] = pd.read_csv(fileName, sep=',', usecols=[1], nrows=num_of_rows).T.values.tolist()[0]
-data['x'] = pd.read_csv(fileName, usecols=[2], nrows=num_of_rows, encoding="ISO-8859-1").T.values.tolist()[0]
 
+data = load_data(num_of_rows)
 corpus = data['x']
 
-print('Cleaning the corpus...')
-clean_corpus = []
-#['to', 'it', 'that', 'is', 'my', 'in', 'have', 'me', 'im', 'so', 'be', 'out', 'wa']
 
-forbidden = ['and', 'to', 'have', 'get', 'now', 'thi', 'oh', 'got', 'am', 'he', 'back', 'ned', 'so', 'at', 'it', 'my','that', 'is', 'in', 'have', 'me', 'im', 'so', 'be', 'out', 'wa', '']
-stop_punc = set(forbidden) # set(forbidden) #set(stopwords.words('english')).union(set(punctuation))
-stop_punc.add('lt')
-stop_punc.add('gt')
-stop_punc.add('quot')
-stop_punc.add('amp')
-# stop_punc.add('im')
-# stop_punc.remove('no')
-#stop_punc.remove('not')
+forbidden = ['and', 'to', 'have', 'get', 'now', 'thi', 'oh', 'got', 'am', 'he', 'back', 'lt', 'gt', 'quot', 'amp',
+             'ned', 'so', 'at', 'it', 'my', 'that', 'is', 'in', 'have', 'me', 'im', 'so', 'be', 'out', 'wa', '']
+stop_punc = set(forbidden)
 
-#stop_punc = [remove_symbols(w) for w in stop_punc]
-print(stop_punc)
-
-cnt = 0
-useFile = False
-
+# Mapirati svaku rec na njen broj pojavljivanja
 dictonary = dict()
-f = open('output1.txt', 'w')
+
+clean_corpus = []
+porter = PorterStemmer()
+cnt = 0
 current_index = -1
 
+# Filtriranje tvitova
+print('Cleaning the corpus...')
 for doc in corpus:
+    if cnt % (max//100) == 0:
+        printProgressBar(cnt, max, 'cleaned')
     cnt += 1
     current_index += 1
+
     doc = remove_mentions(doc)
     doc = remove_links(doc)
     doc = remove_hashtag(doc)
-    # doc = re.sub(r'\basap\b', 'as soon as possible', doc)
-    # doc = re.sub(r'\bidk\b', 'i don\'t know', doc)
-    # doc = re.sub(r'\bppl\b', 'people', doc)
-    # doc = re.sub(r'\bomg\b', 'oh my god', doc)
-    # doc = re.sub(r'\bwtf\b', 'what the fuck', doc)
-    # doc = re.sub(r'\blmao\b', 'laughing my ass off', doc)
-    # doc = re.sub(r'\blol\b', 'laugh out loud', doc)
-    # doc = re.sub(r'\blol\b', 'laugh out loud', doc)
     doc = remove_symbols(doc)
+
     words = wordpunct_tokenize(doc)
-    words_lower = [w.lower() for w in words]
-    words_filtered = [remove_hashtag(w) for w in words_lower]
+
+    words_filtered = [w.lower() for w in words]
+    words_filtered = [remove_hashtag(w) for w in words_filtered]
     words_filtered = [w for w in words_filtered if w not in stop_punc]
     words_filtered = [w for w in words_filtered if w.isalpha()]
     words_filtered = [too_many_chars(w) for w in words_filtered]
-    # words_filtered = [w for w in words_filtered if enchantDict.check(w)]
     words_filtered = [porter.stem(w) for w in words_filtered]
     words_filtered = [w for w in words_filtered if w not in stop_punc]
+
     for word in words_filtered:
         key = dictonary.get(word, 0)
         dictonary[word] = key + 1
 
+    # Check if there is at least one word in filtered words
     if len(words_filtered) > 0:
         clean_corpus.append(words_filtered)
     else:
+        # If we filtered everything out we don't want to add it and we need to pop that data from data['y']
         data['y'].pop(current_index)
         current_index -= 1
 
-    if useFile: f.write(str(words_filtered))
-    if useFile: f.write('\n')
     if cnt == max:
         break
-
+printProgressBar(max, max, 'cleaned')
+# Moramo da promenimo max u slucaju da smo izbacili neke twitove
 max = len(clean_corpus)
-f.close()
-# Kreiramo vokabular
-print('Creating the vocab...')
+print('\nCreating the vocab...')
 vocab_set = set()
 for doc in clean_corpus:
     for word in doc:
         vocab_set.add(word)
 vocab = list(vocab_set)
-# MORA DA STOJI !!!
+# MORA DA STOJI !!! JER SE UVEK DRUGACIJE UBACUJE U SET
 vocab.sort()
 
-
+# Ako je broj razlicitih reci vec od 10000 zelimo da ih svedemo na najboljih 10000
 if len(vocab) > 10000:
     list_of_all_words = []
+    # Ubacujemo u listu tuplova (rec, broj_pojavljivanja)
     for word in vocab:
         key = dictonary.get(word, 0)
         list_of_all_words.append((word, key))
+    # Sortiramo po broju pojavljivanja
     list_of_all_words.sort(key=lambda x: x[1], reverse=True)
     out_list = []
-    print(list_of_all_words[9999][1])
+    # Zelimo da uzmemo samo one reci koje se pojavljuju makar 10 puta u svim twitovima
     for i in range(10000):
         if list_of_all_words[i][1] >= 10:
             out_list.append(list_of_all_words[i][0])
     vocab = out_list
 
-# print('Vocab:', list(zip(vocab, range(len(vocab)))))
+
 print('Feature vector size: ', len(vocab))
 model = MultinomialNaiveBayes(nb_classes=2, nb_words=len(vocab), pseudocount=1)
 
+# Random indeksi da ne bi morali data da mesamo
 random_index = create_random_indexes(max)
 
 # Bag of Words model
 print('Creating BOW features...')
-
 feature_vector_size = len(vocab)
 
+# Mapiranje svake reci na njen indeks u vokabularu
 vocab_dic = dict()
 for i in range(feature_vector_size):
     vocab_dic[vocab[i]] = i
 
+# Uzimamo i pravo feature vektore od 80% podataka za treniranje
 for i in range(int(max*0.8)):
+    # Uzimamo jedan twit iz corpusa
     doc_idx = random_index[i]
     doc = clean_corpus[doc_idx]
+
     doc_set = set()
     for word in doc:
         doc_set.add(word)
 
+    # Umesto da pravimo feature vector velicine vokabulara pravimo samo niz tuplova
+    # gde je prva stvar indeks na kom se nalazi u vokabularu a druga stvar je koliko
+    # puta se nalazi u tom twitu
+    # prakticno kompresija niza [0,0,0,1,0,0,5,0,0,0,2] na [(3,1),(6,5),(10,2)]
+    # posto tvitovi generalno nece imati previse reci ovo je ogromna optimizacija jer
+    # ne moramo vise da imamo za svaki feature vector po 10000 elemenata vec mozemo da
+    # imamo po 10-ak po twitu
     new_feature_vector = []
-
     for word in doc_set:
         number_of_occ = numocc_score(word, doc)
         new_feature_vector.append((vocab_dic.get(word, -1), number_of_occ))
 
+    # Modelu saljemo feature vector i da li je twit bio pozitivan ili ne to je deo data['y'][doc_idx]
     model.add_feature_vector_tmp(new_feature_vector, data['y'][doc_idx])
 
+# Kada zavrsimo sa ubacivanjem svih feature vectora fitujemo
 model.fit()
 
-print('Checking for test set...')
+
 brojTacnih = 0
 class_names = ['Negative', 'Positive']
-
 confusion_matrix = []
 true_negatives = 0
 true_positives = 0
 false_negative = 0
 false_positives = 0
+print('Checking for test set...')
+# Uzimamo i pravo feature vektore od 20% podataka za testiranje
 for i in range(int(max*0.8), max):
+    # Ista stvar kao i gore
     doc_idx = random_index[i]
     doc = clean_corpus[doc_idx]
 
@@ -392,21 +347,13 @@ for i in range(int(max*0.8), max):
 confusion_matrix.append([true_negatives, false_positives])
 confusion_matrix.append([false_negative, true_positives])
 
-print('Confusion matrix\n', confusion_matrix)
-print('Proecenat novi', (true_positives+true_negatives) / (true_positives+true_negatives+false_negative+false_positives) * 100)
+print('Confusion matrix [[TN,FP],[FN,TP]]\n', confusion_matrix)
+print('Proecenat tacnosti : ', (true_positives+true_negatives) / (true_positives+true_negatives+false_negative+false_positives) * 100)
 
-# negative = [('not', 3463.0), ('no', 2935.0), ('go', 2767.0), ('dont', 2253.0), ('get', 2224.0)]
-# positive = [('thank', 4022.0), ('god', 3635.0), ('love', 3295.0), ('like', 2777.0), ('u', 2324.0)]
+# negative = [('i', 15900.0), ('the', 8377.0), ('a', 6364.0), ('you', 6064.0), ('but', 3971.0)]
+# positive = [('i', 13712.0), ('you', 11874.0), ('the', 11238.0), ('a', 9189.0), ('for', 5839.0)]
 print(model.best_tweets(vocab, amount=5))
-# za generisanje forbidden-a
-pos = model.best_tweets(vocab,amount=10)[1]
-neg = model.best_tweets(vocab,amount=10)[0]
-out = []
-for str1, br1 in pos:
-    for str2, br2 in neg:
-        if str1 == str2 and abs(br1-br2)/(br1+br2)<=0.15:
-            out.append(str1)
-            break
+# negative = [('sad', 0.067), ('sadli', 0.075), ('por', 0.125), ('upset', 0.137), ('depres', 0.14)]
+# positive = [('folowfriday', 20.43), ('vip', 13.083), ('welcom', 13.0), ('recomend', 10.54), ('congrat', 8.64)]
 print(model.best_lr_tweets(vocab, amount=5))
 print('Done.')
-print(out)
