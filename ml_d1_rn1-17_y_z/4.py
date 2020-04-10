@@ -368,5 +368,4 @@ print(model.best_lr_tweets(vocab, amount=5))
 
 # Ovih 10 dobijenih reci iz LR-a ne moraju nuzno da budu i u prvom skupu, one samo oznacavaju koliko puta se vise pojavljuju
 # u nekoj klasi, ali i dalje postoje reci koje se pojavljuju u obe klase mnogo puta i koje imaju LR metriku obicno izmedju 0.5 - 1.5
-
 print('Done.')
