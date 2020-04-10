@@ -118,7 +118,7 @@ class MultinomialNaiveBayes:
         return list_out
 
 
-def printProgressBar(i,max,postText):
+def print_progress_bar(i, max, postText):
     n_bar = 10
     j = i/max
     sys.stdout.write('\r')
@@ -200,7 +200,7 @@ current_index = -1
 print('Cleaning the corpus...')
 for doc in corpus:
     if cnt % (max//100) == 0:
-        printProgressBar(cnt, max, 'cleaned')
+        print_progress_bar(cnt, max, 'cleaned')
     cnt += 1
     current_index += 1
 
@@ -219,21 +219,24 @@ for doc in corpus:
     words_filtered = [porter.stem(w) for w in words_filtered]
     words_filtered = [w for w in words_filtered if w not in stop_punc]
 
+    # Ubacivanje u mapu koliko se svaka rec pojavila
     for word in words_filtered:
         key = dictonary.get(word, 0)
         dictonary[word] = key + 1
 
-    # Check if there is at least one word in filtered words
+    # Proverite da li postoji najmanje jedna reč u filtriranim recima
     if len(words_filtered) > 0:
         clean_corpus.append(words_filtered)
     else:
-        # If we filtered everything out we don't want to add it and we need to pop that data from data['y']
+        # Ako smo sve filtrirali, ne zelimo da ga dodamo i te podatke moramo popovati iz data['y']
         data['y'].pop(current_index)
         current_index -= 1
 
     if cnt == max:
         break
-printProgressBar(max, max, 'cleaned')
+
+print_progress_bar(max, max, 'cleaned')
+
 # Moramo da promenimo max u slucaju da smo izbacili neke twitove
 max = len(clean_corpus)
 print('\nCreating the vocab...')
@@ -330,6 +333,7 @@ for i in range(int(max*0.8), max):
         number_of_occ = numocc_score(word, doc)
         new_feature_vector.append((vocab_dic.get(word, -1), number_of_occ))
 
+    # Predictujemo da li je postivan ili negativan twit
     prediction = model.predict_tmp(new_feature_vector)
     if class_names[prediction] == 'Positive':
         if data['y'][doc_idx] == 1:
@@ -356,4 +360,13 @@ print(model.best_tweets(vocab, amount=5))
 # negative = [('sad', 0.067), ('sadli', 0.075), ('por', 0.125), ('upset', 0.137), ('depres', 0.14)]
 # positive = [('folowfriday', 20.43), ('vip', 13.083), ('welcom', 13.0), ('recomend', 10.54), ('congrat', 8.64)]
 print(model.best_lr_tweets(vocab, amount=5))
+
+# LR metrika kaze da ako je dobijeni broj preko 1 to znaci da se ta rec vise pojavljuje u pozitivnim tvitovima
+# a ako je broj manji od 1 to znaci da se vise pojavljuje u negativnim sto je broj veci ili manji to je drasticnija razlika
+# za LR == 20, to znaci da se rec pojavlju 20 puta vise u pozitivnim tvitovima nego u negativnim
+# za LR == 0.067 (1/0.067) to znaci da se rec pojavljuje skoro 15 puta vise u negativnim nego pozitivnim
+
+# Ovih 10 dobijenih reci iz LR-a ne moraju nuzno da budu i u prvom skupu, one samo oznacavaju koliko puta se vise pojavljuju
+# u nekoj klasi, ali i dalje postoje reci koje se pojavljuju u obe klase mnogo puta i koje imaju LR metriku obicno izmedju 0.5 - 1.5
+
 print('Done.')
